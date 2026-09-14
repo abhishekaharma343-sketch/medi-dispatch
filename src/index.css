@@ -1,0 +1,98 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* Base emergency control center styles */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #090d16;
+  color: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom pulse animations for emergency markers and radar */
+@keyframes emergency-pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.75); }
+  70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes emergency-pulse-orange {
+  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.75); }
+  70% { box-shadow: 0 0 0 12px rgba(249, 115, 22, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+}
+
+@keyframes emergency-pulse-blue {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.75); }
+  70% { box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+@keyframes emergency-pulse-green {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.75); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.pulse-red {
+  animation: emergency-pulse-red 1.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.pulse-orange {
+  animation: emergency-pulse-orange 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.pulse-blue {
+  animation: emergency-pulse-blue 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.pulse-green {
+  animation: emergency-pulse-green 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* Custom scrollbars for high-density dispatch tables & feeds */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: #232d3f;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #374763;
+}
+
+/* Leaflet dark mode filter and map container resets */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #0b111e !important;
+  font-family: inherit;
+}
+
+.leaflet-tile {
+  filter: brightness(0.65) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.leaflet-popup-content-wrapper {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #334155 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+}
+
+.leaflet-popup-tip {
+  background: #0f172a !important;
+}
