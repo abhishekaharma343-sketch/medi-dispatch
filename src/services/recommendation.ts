@@ -60,18 +60,18 @@ export function calculateAmbulanceRecommendations(
     if (reqType === ambType) {
       typeMatchScore = 20;
       reasons.push(`Exact equipment match: ${ambType}`);
-    } else if (
-      (reqType === 'BLS' && (ambType === 'ALS' || ambType === 'MICU')) ||
-      (reqType === 'ALS' && ambType === 'MICU')
-    ) {
+    } else if (reqType === 'PTA' && (ambType === 'BLS' || ambType === 'ALS')) {
       typeMatchScore = 18;
       reasons.push(`Higher tier capability available: ${ambType} exceeds ${reqType} spec`);
-    } else if (reqType === 'MICU' && ambType === 'ALS') {
-      typeMatchScore = 12;
-      reasons.push(`ALS can handle severe critical care if MICU unavailable`);
+    } else if (reqType === 'BLS' && ambType === 'ALS') {
+      typeMatchScore = 18;
+      reasons.push(`Advanced Life Support (ALS) deployed for Basic requirement`);
+    } else if (reqType === 'ALS' && ambType === 'BLS') {
+      typeMatchScore = 10;
+      reasons.push(`BLS available; ALS paramedic escort may be needed`);
     } else {
-      typeMatchScore = 5;
-      reasons.push(`Unit type ${ambType} does not meet optimal ${reqType} level`);
+      typeMatchScore = 6;
+      reasons.push(`Unit type ${ambType} assigned for ${reqType} protocol`);
     }
 
     // 4. Critical Readiness & Crew (0 - 10 pts)

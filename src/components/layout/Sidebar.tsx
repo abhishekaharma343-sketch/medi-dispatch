@@ -17,54 +17,54 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => {
-  const { stats } = useDispatchContext();
+  const { stats, t } = useDispatchContext();
 
   const navItems = [
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: t('dashboard'),
       icon: LayoutDashboard,
       badge: stats.pendingRequests > 0 ? `${stats.pendingRequests} Pnd` : undefined,
       badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     },
     {
       id: 'requests',
-      label: 'Emergency Requests',
+      label: t('emergencyRequests'),
       icon: BellRing,
       badge: stats.criticalRequests > 0 ? `${stats.criticalRequests} Crit` : undefined,
       badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30 animate-pulse',
     },
     {
       id: 'ambulances',
-      label: 'Ambulance Fleet',
+      label: t('ambulances'),
       icon: Ambulance,
       badge: `${stats.availableAmbulances} Avail`,
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     },
     {
       id: 'map',
-      label: 'Live CAD Map',
+      label: t('liveMap'),
       icon: MapPin,
       badge: 'GPS',
       badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
     },
     {
       id: 'trips',
-      label: 'Active Trips',
+      label: t('activeTrips'),
       icon: Route,
       badge: stats.busyAmbulances > 0 ? `${stats.busyAmbulances} Active` : undefined,
       badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
     },
     {
       id: 'history',
-      label: 'Incident History',
+      label: t('incidentHistory'),
       icon: History,
       badge: `${stats.completedTripsCount} Done`,
       badgeColor: 'bg-slate-700/50 text-slate-300 border-slate-600/30',
     },
     {
       id: 'reports',
-      label: 'Reports & Analytics',
+      label: t('reports'),
       icon: BarChart3,
     },
   ];
@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
       {/* Main Navigation Links */}
       <div className="py-4 px-3 space-y-1">
         <div className="px-3 mb-2 text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold">
-          DISPATCH NAVIGATION
+          {t('dispatchNav')}
         </div>
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -116,10 +116,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
         <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
           <span className="flex items-center space-x-1.5">
             <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-            <span>Fleet Readiness</span>
+            <span>{t('fleetReadiness')}</span>
           </span>
           <span className="font-mono text-emerald-400 font-bold">
-            {stats.availableAmbulances}/{stats.availableAmbulances + stats.busyAmbulances} Units
+            {stats.availableAmbulances}/{stats.availableAmbulances + stats.busyAmbulances} {t('units')}
           </span>
         </div>
 
@@ -160,15 +160,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
         <div className="grid grid-cols-3 text-[10px] font-mono text-center pt-1 border-t border-slate-800 text-slate-400">
           <div>
             <span className="text-emerald-400 font-bold block">{stats.availableAmbulances}</span>
-            <span>Avail</span>
+            <span>{t('avail')}</span>
           </div>
           <div>
             <span className="text-cyan-400 font-bold block">{stats.ambulancesEnRoute}</span>
-            <span>En Route</span>
+            <span>{t('enRoute')}</span>
           </div>
           <div>
             <span className="text-amber-400 font-bold block">{stats.transportingAmbulances}</span>
-            <span>At Hosp</span>
+            <span>{t('atHosp')}</span>
           </div>
         </div>
       </div>

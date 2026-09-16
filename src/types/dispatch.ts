@@ -19,19 +19,21 @@ export type AmbulanceStatus =
   | 'TRANSPORTING'
   | 'MAINTENANCE';
 
-export type AmbulanceType = 'ALS' | 'BLS' | 'MICU' | 'NEONATAL';
+// Indian Ambulance Categories required by prompt:
+// BLS (Basic Life Support), ALS (Advanced Life Support), PTA (Patient Transport Ambulance), NEONATAL (Neonatal Ambulance)
+export type AmbulanceType = 'BLS' | 'ALS' | 'PTA' | 'NEONATAL';
 
+// Indian Emergency Categories required by prompt:
 export type EmergencyType =
+  | 'Road Accident'
   | 'Cardiac Emergency'
-  | 'Major Accident'
-  | 'Severe Trauma'
   | 'Breathing Difficulty'
-  | 'Stroke Alert'
-  | 'Severe Injury'
-  | 'Fall / Fracture'
-  | 'Medical Emergency'
-  | 'Pediatric Emergency'
-  | 'Obstetric / Maternity';
+  | 'Stroke'
+  | 'Pregnancy / Maternity'
+  | 'Burns'
+  | 'Trauma'
+  | 'Unconscious Patient'
+  | 'Other Medical Emergency';
 
 export interface IncidentTimelineEvent {
   id: string;
@@ -45,18 +47,29 @@ export interface EmergencyRequest {
   id: string;
   patientName: string;
   callerName: string;
-  contactNumber: string;
+  contactNumber: string; // Indian mobile number e.g. +91 98765 43210
   emergencyType: EmergencyType;
   priority: EmergencyPriority;
+
+  // Indian Address Fields
   location: string;
+  state?: string;
+  district?: string;
+  city?: string;
+  area?: string;
+  street?: string;
+  landmark?: string;
+  pincode?: string;
+
   latitude: number;
   longitude: number;
   requestTime: string;
   numberOfPatients: number;
   requiredAmbulanceType: AmbulanceType;
   status: RequestStatus;
+
   assignedAmbulanceId?: string;
-  assignedAmbulanceNumber?: string;
+  assignedAmbulanceNumber?: string; // Indian Registration e.g. BR 01 AM 2045, DL 01 EM 1024
   assignedDriver?: string;
   assignedCrew?: string[];
   destinationHospitalId?: string;
@@ -71,7 +84,7 @@ export interface EmergencyRequest {
 
 export interface Ambulance {
   id: string;
-  vehicleNumber: string;
+  vehicleNumber: string; // Indian RTO plate e.g. BR 01 AM 2045, DL 01 EM 1024, KA 05 EM 3321
   type: AmbulanceType;
   currentLocation: string;
   latitude: number;
@@ -91,6 +104,8 @@ export interface Hospital {
   id: string;
   name: string;
   address: string;
+  city: string;
+  state: string;
   latitude: number;
   longitude: number;
   erCapacity: 'OPEN' | 'BUSY' | 'CRITICAL';
@@ -154,4 +169,17 @@ export interface RecommendationScore {
   overallScore: number;
   isRecommended: boolean;
   reasons: string[];
+}
+
+// Indian Mobile Number Validator (10 digits starting with 6,7,8,9, optional +91 prefix)
+export function isValidIndianMobile(phone: string): boolean {
+  if (!phone) return false;
+  const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  return /^(\+91)?[6-9]\d{9}$/.test(cleaned);
+}
+
+// Indian Pincode Validator (6 digits, first digit 1-9)
+export function isValidIndianPincode(pincode: string): boolean {
+  if (!pincode) return false;
+  return /^[1-9][0-9]{5}$/.test(pincode.trim());
 }
