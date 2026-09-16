@@ -1,19 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Search,
   History,
   Download,
-  Filter,
-  Clock,
+  Clock3,
   MapPin,
   Ambulance,
-  Calendar,
   CheckCircle2,
-  FileText,
   ChevronRight,
   Hospital,
+  FileClock,
 } from 'lucide-react';
-import { EmergencyPriority, EmergencyRequest } from '../../types/dispatch';
+import { EmergencyPriority } from '../../types/dispatch';
 import { useDispatchContext } from '../../context/DispatchContext';
 
 export const IncidentHistory: React.FC = () => {
@@ -27,26 +25,38 @@ export const IncidentHistory: React.FC = () => {
   const filteredHistory = useMemo(() => {
     return requests
       .filter((req) => {
-        const term = searchTerm.toLowerCase();
+        const term = searchTerm.trim().toLowerCase();
+
         const matchesSearch =
+          !term ||
           req.id.toLowerCase().includes(term) ||
           req.patientName.toLowerCase().includes(term) ||
           req.location.toLowerCase().includes(term) ||
-          (req.assignedAmbulanceId && req.assignedAmbulanceId.toLowerCase().includes(term));
+          req.emergencyType.toLowerCase().includes(term) ||
+          (req.assignedAmbulanceId &&
+            req.assignedAmbulanceId.toLowerCase().includes(term));
 
-        const matchesPriority = priorityFilter === 'ALL' || req.priority === priorityFilter;
-        const matchesStatus = statusFilter === 'ALL' || req.status === statusFilter;
+        const matchesPriority =
+          priorityFilter === 'ALL' || req.priority === priorityFilter;
+
+        const matchesStatus =
+          statusFilter === 'ALL' || req.status === statusFilter;
 
         return matchesSearch && matchesPriority && matchesStatus;
       })
       .sort((a, b) => {
         if (sortBy === 'date') {
           return b.requestTime.localeCompare(a.requestTime);
-        } else if (sortBy === 'responseTime') {
-          return (a.responseTimeMinutes || 99) - (b.responseTimeMinutes || 99);
-        } else {
-          return b.id.localeCompare(a.id);
         }
+
+        if (sortBy === 'responseTime') {
+          return (
+            (a.responseTimeMinutes ?? 999) -
+            (b.responseTimeMinutes ?? 999)
+          );
+        }
+
+        return b.id.localeCompare(a.id);
       });
   }, [requests, searchTerm, priorityFilter, statusFilter, sortBy]);
 
@@ -65,237 +75,481 @@ export const IncidentHistory: React.FC = () => {
       'Final Status',
     ];
 
-    const rows = filteredHistory.map((r) => [
-      r.id,
-      r.priority,
-      r.emergencyType,
-      `"${r.location}"`,
-      r.requestTime,
-      r.assignedAmbulanceId || 'None',
-      r.assignedDriver || 'None',
-      `"${r.destinationHospitalName || 'Metro General'}"`,
-      r.responseTimeMinutes || 'N/A',
-      r.tripDurationMinutes || 'N/A',
-      r.status,
+    const escapeCSV = (value: unknown) =>
+      `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+    const rows = filteredHistory.map((incident) => [
+      incident.id,
+      incident.priority,
+      incident.emergencyType,
+      incident.location,
+      incident.requestTime,
+      incident.assignedAmbulanceId || 'None',
+      incident.assignedDriver || 'None',
+      incident.destinationHospitalName || 'Not Assigned',
+      incident.responseTimeMinutes ?? 'N/A',
+      incident.tripDurationMinutes ?? 'N/A',
+      incident.status,
     ]);
 
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const csv = [
+      headers.map(escapeCSV).join(','),
+      ...rows.map((row) => row.map(escapeCSV).join(',')),
+    ].join('\n');
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csv], {
+      type: 'text/csv;charset=utf-8;',
+    });
+
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `medi_dispatch_incidents_${Date.now()}.csv`);
+
+    link.href = url;
+    link.download = `medi_dispatch_incidents_${Date.now()}.csv`;
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
   };
 
   const getPriorityBadge = (priority: EmergencyPriority) => {
-    switch (priority) {
-      case 'CRITICAL':
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/40">
-            🔴 Critical
-          </span>
-        );
-      case 'HIGH':
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/40">
-            🟠 High
-          </span>
-        );
-      case 'MEDIUM':
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
-            🟡 Medium
-          </span>
-        );
-      case 'LOW':
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-            🟢 Low
-          </span>
-        );
-    }
+    const styles = {
+      CRITICAL:
+        'bg-red-500/10 text-red-300 border-red-500/20',
+      HIGH:
+        'bg-orange-500/10 text-orange-300 border-orange-500/20',
+      MEDIUM:
+        'bg-amber-500/10 text-amber-300 border-amber-500/20',
+      LOW:
+        'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+    };
+
+    const labels = {
+      CRITICAL: 'Critical',
+      HIGH: 'High',
+      MEDIUM: 'Medium',
+      LOW: 'Low',
+    };
+
+    return (
+      <span
+        className={`inline-flex items-center px-2 py-1 rounded-md border text-[9px] font-bold uppercase tracking-wide ${
+          styles[priority]
+        }`}
+      >
+        {labels[priority]}
+      </span>
+    );
+  };
+
+  const getStatusBadge = (status: string) => {
+    const completed = status === 'COMPLETED';
+
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-[9px] font-bold uppercase tracking-wide ${
+          completed
+            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+            : 'bg-slate-800 text-slate-300 border-slate-700'
+        }`}
+      >
+        {completed && <CheckCircle2 className="w-3 h-3" />}
+        {status.replace(/_/g, ' ')}
+      </span>
+    );
   };
 
   return (
-    <div className="p-4 max-w-[1700px] mx-auto space-y-4">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+    <div className="min-h-full p-4 sm:p-5 lg:p-6 max-w-[1700px] mx-auto space-y-5">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-white tracking-tight flex items-center space-x-2">
-            <span>Incident Archives & Audit History</span>
-            <span className="text-xs font-mono bg-slate-800 border border-slate-700 text-slate-300 px-2 py-0.5 rounded">
-              {filteredHistory.length} Records
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center">
+              <History className="w-4 h-4 text-cyan-400" />
+            </div>
+
+            <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-cyan-400">
+              Records & Audit
             </span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            Incident History
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Full compliance audit logs, response latency metrics, and medical transport records
+
+          <p className="text-sm text-slate-400 mt-1">
+            Review emergency records, response performance and completed
+            ambulance missions.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={exportCSV}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition"
-          >
-            <Download className="w-4 h-4 text-cyan-400" />
-            <span>Export CSV</span>
-          </button>
+        <button
+          onClick={exportCSV}
+          disabled={filteredHistory.length === 0}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Download className="w-4 h-4 text-cyan-400" />
+          Export CSV
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+            Records
+          </span>
+          <p className="text-xl font-bold text-white mt-1">
+            {filteredHistory.length}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+            Critical
+          </span>
+          <p className="text-xl font-bold text-red-400 mt-1">
+            {
+              filteredHistory.filter(
+                (incident) => incident.priority === 'CRITICAL'
+              ).length
+            }
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+            Completed
+          </span>
+          <p className="text-xl font-bold text-emerald-400 mt-1">
+            {
+              filteredHistory.filter(
+                (incident) => incident.status === 'COMPLETED'
+              ).length
+            }
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+            Avg Response
+          </span>
+          <p className="text-xl font-bold text-cyan-400 mt-1">
+            {filteredHistory.length
+              ? (
+                  filteredHistory.reduce(
+                    (sum, incident) =>
+                      sum + (incident.responseTimeMinutes ?? 0),
+                    0
+                  ) / filteredHistory.length
+                ).toFixed(1)
+              : '0.0'}
+            <span className="text-xs font-medium text-slate-500 ml-1">
+              min
+            </span>
+          </p>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-900/80 border border-slate-800 p-3 rounded-xl">
-        <div className="lg:col-span-2 relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search incident ID, location, unit..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-red-500"
-          />
-        </div>
+      <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <div className="lg:col-span-2 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
 
-        <div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search ID, patient, location, unit..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+            />
+          </div>
+
           <select
             value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-red-500"
+            onChange={(event) => setPriorityFilter(event.target.value)}
+            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500/50"
           >
             <option value="ALL">All Priorities</option>
-            <option value="CRITICAL">🔴 Critical Only</option>
-            <option value="HIGH">🟠 High</option>
-            <option value="MEDIUM">🟡 Medium</option>
-            <option value="LOW">🟢 Low</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
           </select>
-        </div>
 
-        <div>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-red-500"
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500/50"
           >
             <option value="ALL">All Statuses</option>
-            <option value="COMPLETED">Completed Only</option>
-            <option value="ASSIGNED">Assigned</option>
+            <option value="COMPLETED">Completed</option>
             <option value="HOSPITAL_TRANSPORT">Hospital Transport</option>
+            <option value="PATIENT_PICKED_UP">Patient Picked Up</option>
+            <option value="ARRIVED">Arrived</option>
+            <option value="EN_ROUTE">En Route</option>
+            <option value="ASSIGNED">Assigned</option>
             <option value="PENDING">Pending</option>
           </select>
-        </div>
 
-        <div>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'date' | 'responseTime' | 'id')}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-red-500"
+            onChange={(event) =>
+              setSortBy(
+                event.target.value as 'date' | 'responseTime' | 'id'
+              )
+            }
+            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500/50"
           >
-            <option value="date">Sort: Most Recent</option>
-            <option value="responseTime">Sort: Response Latency</option>
-            <option value="id">Sort: Incident ID</option>
+            <option value="date">Most Recent</option>
+            <option value="responseTime">Response Time</option>
+            <option value="id">Incident ID</option>
           </select>
         </div>
       </div>
 
-      {/* History Table */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/90 border-b border-slate-800 text-[11px] font-mono text-slate-400 uppercase tracking-wider">
-              <tr>
-                <th className="py-3 px-3.5">Incident ID</th>
-                <th className="py-3 px-3.5">Type & Priority</th>
-                <th className="py-3 px-3.5">Incident Location</th>
-                <th className="py-3 px-3.5">Assigned Unit & Driver</th>
-                <th className="py-3 px-3.5">Response Time</th>
-                <th className="py-3 px-3.5">Hospital Destination</th>
-                <th className="py-3 px-3.5">Trip Duration</th>
-                <th className="py-3 px-3.5">Final Status</th>
-                <th className="py-3 px-3.5 text-right">Audit</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/80">
-              {filteredHistory.map((inc) => (
-                <tr key={inc.id} className="hover:bg-slate-800/50 transition-colors">
-                  <td className="py-3 px-3.5 font-mono font-bold text-white">
-                    <button
-                      onClick={() => openTimelineModal(inc)}
-                      className="hover:text-cyan-400 cursor-pointer"
-                    >
-                      {inc.id}
-                    </button>
-                    <span className="text-[10px] text-slate-400 block font-normal">
-                      {inc.requestTime}
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-3.5">
-                    <div className="font-semibold text-slate-200">{inc.emergencyType}</div>
-                    <div className="mt-0.5">{getPriorityBadge(inc.priority)}</div>
-                  </td>
-
-                  <td className="py-3 px-3.5 max-w-[200px]">
-                    <div className="truncate font-medium text-slate-200" title={inc.location}>
-                      {inc.location}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono">
-                      {inc.latitude.toFixed(4)}, {inc.longitude.toFixed(4)}
-                    </div>
-                  </td>
-
-                  <td className="py-3 px-3.5 font-mono">
-                    {inc.assignedAmbulanceId ? (
-                      <div>
-                        <span className="text-cyan-400 font-bold">{inc.assignedAmbulanceId}</span>
-                        <span className="text-[10px] text-slate-400 block truncate max-w-[120px]">
-                          {inc.assignedDriver}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 italic">None</span>
-                    )}
-                  </td>
-
-                  <td className="py-3 px-3.5 font-mono">
-                    <span className="text-emerald-400 font-bold">
-                      {inc.responseTimeMinutes ? `${inc.responseTimeMinutes}m` : '6.4m avg'}
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-3.5 max-w-[160px] truncate text-slate-300">
-                    {inc.destinationHospitalName || 'Metro Central ER'}
-                  </td>
-
-                  <td className="py-3 px-3.5 font-mono text-slate-300">
-                    {inc.tripDurationMinutes ? `${inc.tripDurationMinutes}m` : '26m'}
-                  </td>
-
-                  <td className="py-3 px-3.5">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 border border-slate-700 text-slate-300">
-                      {inc.status}
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-3.5 text-right">
-                    <button
-                      onClick={() => openTimelineModal(inc)}
-                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-700 flex items-center space-x-1 ml-auto"
-                    >
-                      <span>Timeline</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {filteredHistory.length === 0 ? (
+        <div className="min-h-[360px] rounded-2xl border border-slate-800 bg-slate-900/60 flex items-center justify-center">
+          <div className="text-center px-6">
+            <FileClock className="w-10 h-10 text-slate-600 mx-auto mb-4" />
+            <h2 className="text-base font-bold text-white">
+              No Records Found
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Try changing your search or filter criteria.
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="hidden lg:block rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-950/80 border-b border-slate-800">
+                  <tr className="text-[9px] uppercase tracking-wider text-slate-500">
+                    <th className="px-4 py-3">Incident</th>
+                    <th className="px-4 py-3">Emergency</th>
+                    <th className="px-4 py-3">Location</th>
+                    <th className="px-4 py-3">Unit</th>
+                    <th className="px-4 py-3">Response</th>
+                    <th className="px-4 py-3">Hospital</th>
+                    <th className="px-4 py-3">Duration</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Audit</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-800/80">
+                  {filteredHistory.map((incident) => (
+                    <tr
+                      key={incident.id}
+                      className="hover:bg-slate-800/30 transition"
+                    >
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => openTimelineModal(incident)}
+                          className="text-left"
+                        >
+                          <span className="font-mono text-xs font-bold text-white hover:text-cyan-400 transition">
+                            {incident.id}
+                          </span>
+                          <span className="block text-[10px] text-slate-500 mt-1">
+                            {incident.requestTime}
+                          </span>
+                        </button>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="text-xs font-semibold text-slate-200">
+                          {incident.emergencyType}
+                        </div>
+
+                        <div className="mt-1">
+                          {getPriorityBadge(incident.priority)}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3 max-w-[220px]">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />
+
+                          <div className="min-w-0">
+                            <p
+                              className="text-xs text-slate-300 truncate"
+                              title={incident.location}
+                            >
+                              {incident.location}
+                            </p>
+
+                            <p className="text-[9px] text-slate-600 font-mono mt-1">
+                              {incident.latitude.toFixed(4)},{' '}
+                              {incident.longitude.toFixed(4)}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {incident.assignedAmbulanceId ? (
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <Ambulance className="w-3.5 h-3.5 text-cyan-400" />
+                              <span className="text-xs font-mono font-bold text-cyan-300">
+                                {incident.assignedAmbulanceId}
+                              </span>
+                            </div>
+
+                            <span className="block text-[10px] text-slate-500 mt-1">
+                              {incident.assignedDriver || 'Driver not recorded'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-600">
+                            Not assigned
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <Clock3 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-xs font-mono font-bold text-emerald-400">
+                            {incident.responseTimeMinutes != null
+                              ? `${incident.responseTimeMinutes}m`
+                              : 'N/A'}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3 max-w-[180px]">
+                        <div className="flex items-start gap-2">
+                          <Hospital className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                          <span
+                            className="text-xs text-slate-300 truncate"
+                            title={incident.destinationHospitalName || ''}
+                          >
+                            {incident.destinationHospitalName ||
+                              'Not assigned'}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-mono text-slate-300">
+                          {incident.tripDurationMinutes != null
+                            ? `${incident.tripDurationMinutes}m`
+                            : 'N/A'}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {getStatusBadge(incident.status)}
+                      </td>
+
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => openTimelineModal(incident)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold text-cyan-300 transition"
+                        >
+                          Timeline
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="lg:hidden space-y-3">
+            {filteredHistory.map((incident) => (
+              <button
+                key={incident.id}
+                onClick={() => openTimelineModal(incident)}
+                className="w-full text-left rounded-2xl border border-slate-800 bg-slate-900/80 p-4 hover:border-slate-700 transition"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold text-white">
+                        {incident.id}
+                      </span>
+
+                      {getPriorityBadge(incident.priority)}
+                    </div>
+
+                    <p className="text-xs font-semibold text-slate-300 mt-1.5">
+                      {incident.emergencyType}
+                    </p>
+                  </div>
+
+                  <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />
+                    <span className="text-xs text-slate-400">
+                      {incident.location}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <Hospital className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                    <span className="text-xs text-slate-400">
+                      {incident.destinationHospitalName || 'Hospital not assigned'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-800 grid grid-cols-3 gap-2">
+                  <div>
+                    <span className="text-[9px] uppercase text-slate-600 block">
+                      Response
+                    </span>
+                    <span className="text-xs font-mono font-bold text-emerald-400">
+                      {incident.responseTimeMinutes != null
+                        ? `${incident.responseTimeMinutes}m`
+                        : 'N/A'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] uppercase text-slate-600 block">
+                      Unit
+                    </span>
+                    <span className="text-xs font-mono font-bold text-cyan-300">
+                      {incident.assignedAmbulanceId || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] uppercase text-slate-600 block">
+                      Status
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-300">
+                      {incident.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-600">
+                    {incident.requestTime}
+                  </span>
+
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-400">
+                    View timeline
+                    <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };

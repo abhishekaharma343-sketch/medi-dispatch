@@ -1,432 +1,768 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Route,
-  Navigation,
-  Clock,
-  MapPin,
-  Ambulance as AmbulanceIcon,
-  CheckCircle2,
-  Play,
-  Pause,
   Activity,
-  Heart,
-  Hospital as HospitalIcon,
+  Ambulance,
+  ArrowRight,
+  CheckCircle2,
   ChevronRight,
+  Clock3,
+  HeartPulse,
+  Hospital,
+  MapPin,
+  Navigation,
+  Pause,
+  Play,
+  Route,
   ShieldAlert,
+  Stethoscope,
 } from 'lucide-react';
-import { ActiveTrip, RequestStatus } from '../../types/dispatch';
+import { RequestStatus } from '../../types/dispatch';
 import { useDispatchContext } from '../../context/DispatchContext';
 
 export const TripTracker: React.FC = () => {
-  const { trips, advanceTripStep, updateTripStage, openTimelineModal, requests } =
-    useDispatchContext();
+  const {
+    trips,
+    advanceTripStep,
+    updateTripStage,
+    openTimelineModal,
+    requests,
+  } = useDispatchContext();
 
-  const [selectedTripId, setSelectedTripId] = useState<string>(
+  const [selectedTripId, setSelectedTripId] = useState(
     trips.length > 0 ? trips[0].id : ''
   );
+  const [autoSimulate, setAutoSimulate] = useState(false);
 
-  const [autoSimulate, setAutoSimulate] = useState<boolean>(false);
+  useEffect(() => {
+    if (trips.length > 0 && !trips.some((trip) => trip.id === selectedTripId)) {
+      setSelectedTripId(trips[0].id);
+    }
 
-  // Active selected trip
-  const activeTrip = trips.find((t) => t.id === selectedTripId) || trips[0];
+    if (trips.length === 0) {
+      setSelectedTripId('');
+      setAutoSimulate(false);
+    }
+  }, [trips, selectedTripId]);
+
+  const activeTrip = trips.find((trip) => trip.id === selectedTripId) || trips[0];
+
   const relatedIncident = activeTrip
-    ? requests.find((r) => r.id === activeTrip.incidentId)
+    ? requests.find((request) => request.id === activeTrip.incidentId)
     : null;
 
   const stages: Array<{
     key: RequestStatus;
     title: string;
-    sub: string;
+    short: string;
   }> = [
-    { key: 'PENDING', title: 'Emergency Received', sub: 'CAD Logged' },
-    { key: 'ASSIGNED', title: 'Ambulance Assigned', sub: 'Crew Notified' },
-    { key: 'EN_ROUTE', title: 'En Route', sub: 'Siren / Lights' },
-    { key: 'ARRIVED', title: 'Arrived at Scene', sub: 'Assessment Active' },
-    { key: 'PATIENT_PICKED_UP', title: 'Patient Picked Up', sub: 'Stabilized in Unit' },
-    { key: 'HOSPITAL_TRANSPORT', title: 'Hospital Transport', sub: 'In Transit to ER' },
-    { key: 'COMPLETED', title: 'Completed', sub: 'ER Handover Done' },
+    {
+      key: 'PENDING',
+      title: 'Emergency Received',
+      short: 'CAD Logged',
+    },
+    {
+      key: 'ASSIGNED',
+      title: 'Ambulance Assigned',
+      short: 'Crew Notified',
+    },
+    {
+      key: 'EN_ROUTE',
+      title: 'En Route',
+      short: 'Responding',
+    },
+    {
+      key: 'ARRIVED',
+      title: 'Arrived at Scene',
+      short: 'Assessment',
+    },
+    {
+      key: 'PATIENT_PICKED_UP',
+      title: 'Patient Picked Up',
+      short: 'Patient On Board',
+    },
+    {
+      key: 'HOSPITAL_TRANSPORT',
+      title: 'Hospital Transport',
+      short: 'To Emergency Dept.',
+    },
+    {
+      key: 'COMPLETED',
+      title: 'Completed',
+      short: 'ER Handover',
+    },
   ];
 
   const currentStageIndex = activeTrip
-    ? stages.findIndex((s) => s.key === activeTrip.status)
+    ? Math.max(
+        0,
+        stages.findIndex((stage) => stage.key === activeTrip.status)
+      )
     : 0;
 
-  // Auto progression effect for demo
-  React.useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
-    if (autoSimulate && activeTrip) {
-      timer = setInterval(() => {
-        advanceTripStep(activeTrip.id);
-      }, 3500);
+  useEffect(() => {
+    if (!autoSimulate || !activeTrip || activeTrip.status === 'COMPLETED') {
+      return;
     }
+
+    const timer = setInterval(() => {
+      advanceTripStep(activeTrip.id);
+    }, 3500);
+
     return () => clearInterval(timer);
   }, [autoSimulate, activeTrip, advanceTripStep]);
 
+  const tripStats = useMemo(() => {
+    const total = trips.length;
+    const enRoute = trips.filter((trip) => trip.status === 'EN_ROUTE').length;
+    const arrived = trips.filter((trip) => trip.status === 'ARRIVED').length;
+    const transporting = trips.filter(
+      (trip) => trip.status === 'HOSPITAL_TRANSPORT'
+    ).length;
+
+    return {
+      total,
+      enRoute,
+      arrived,
+      transporting,
+    };
+  }, [trips]);
+
+  const getStatusLabel = (status: RequestStatus) => {
+    switch (status) {
+      case 'PENDING':
+        return 'Received';
+      case 'ASSIGNED':
+        return 'Assigned';
+      case 'EN_ROUTE':
+        return 'En Route';
+      case 'ARRIVED':
+        return 'On Scene';
+      case 'PATIENT_PICKED_UP':
+        return 'Patient On Board';
+      case 'HOSPITAL_TRANSPORT':
+        return 'Hospital Transport';
+      case 'COMPLETED':
+        return 'Completed';
+      default:
+        return status;
+    }
+  };
+
+  const getStatusClass = (status: RequestStatus) => {
+    switch (status) {
+      case 'EN_ROUTE':
+        return 'bg-blue-500/10 text-blue-300 border-blue-500/20';
+      case 'ARRIVED':
+        return 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+      case 'PATIENT_PICKED_UP':
+        return 'bg-purple-500/10 text-purple-300 border-purple-500/20';
+      case 'HOSPITAL_TRANSPORT':
+        return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20';
+      case 'COMPLETED':
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+      default:
+        return 'bg-slate-800 text-slate-300 border-slate-700';
+    }
+  };
+
   return (
-    <div className="p-4 max-w-[1700px] mx-auto space-y-4">
-      {/* Title & Trip Selector */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+    <div className="min-h-full p-4 sm:p-5 lg:p-6 max-w-[1700px] mx-auto space-y-5">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-white tracking-tight flex items-center space-x-2">
-            <span>Mission & Trip Lifecycle Tracking</span>
-            <span className="text-xs font-mono bg-cyan-950/80 border border-cyan-800/60 text-cyan-400 px-2 py-0.5 rounded">
-              {trips.length} In Progress
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+              <Route className="w-4 h-4 text-cyan-400" />
+            </div>
+            <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-cyan-400">
+              Operations
             </span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            Active Trips
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Real-time telemetry, stage progression, and patient vital monitoring from dispatch to hospital handover
+
+          <p className="text-sm text-slate-400 mt-1">
+            Monitor ambulance missions, patient transport and hospital handover.
           </p>
         </div>
 
-        {/* Demo Auto-advance Toggle */}
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800">
+            <span className="text-[10px] uppercase tracking-wider text-slate-500 block">
+              Active
+            </span>
+            <span className="text-sm font-bold text-white">
+              {tripStats.total}
+            </span>
+          </div>
+
+          <div className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800">
+            <span className="text-[10px] uppercase tracking-wider text-slate-500 block">
+              En Route
+            </span>
+            <span className="text-sm font-bold text-blue-400">
+              {tripStats.enRoute}
+            </span>
+          </div>
+
+          <div className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800">
+            <span className="text-[10px] uppercase tracking-wider text-slate-500 block">
+              On Scene
+            </span>
+            <span className="text-sm font-bold text-amber-400">
+              {tripStats.arrived}
+            </span>
+          </div>
+
+          <div className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800">
+            <span className="text-[10px] uppercase tracking-wider text-slate-500 block">
+              To Hospital
+            </span>
+            <span className="text-sm font-bold text-cyan-400">
+              {tripStats.transporting}
+            </span>
+          </div>
+
           <button
-            onClick={() => setAutoSimulate(!autoSimulate)}
-            className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+            onClick={() => setAutoSimulate((value) => !value)}
+            disabled={!activeTrip || activeTrip.status === 'COMPLETED'}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold border transition ${
               autoSimulate
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
-                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-            }`}
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
           >
-            {autoSimulate ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 text-emerald-400" />}
-            <span>{autoSimulate ? 'Pause Auto Demo' : 'Auto-Step Simulation'}</span>
+            {autoSimulate ? (
+              <Pause className="w-3.5 h-3.5" />
+            ) : (
+              <Play className="w-3.5 h-3.5 text-emerald-400" />
+            )}
+            {autoSimulate ? 'Pause Simulation' : 'Auto Simulation'}
           </button>
         </div>
       </div>
 
       {trips.length === 0 ? (
-        <div className="p-12 text-center bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
-          <Route className="w-12 h-12 text-slate-400 mx-auto" />
-          <h3 className="text-base font-bold text-white">No Active Emergency Trips</h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
-            All assigned ambulances have completed their missions. Use the priority queue or simulate a new 911 emergency to initiate a trip.
-          </p>
+        <div className="min-h-[420px] rounded-2xl border border-slate-800 bg-slate-900/60 flex items-center justify-center">
+          <div className="text-center max-w-md px-6">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-5">
+              <Route className="w-8 h-8 text-slate-500" />
+            </div>
+
+            <h2 className="text-lg font-bold text-white">
+              No Active Trips
+            </h2>
+
+            <p className="text-sm text-slate-400 mt-2 leading-6">
+              There are currently no ambulance missions in progress. Dispatch
+              an ambulance from the Emergency Requests section to start a trip.
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Left Column: Trip Selector Cards */}
-          <div className="lg:col-span-4 space-y-3">
-            <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider px-1">
-              Active Missions ({trips.length})
-            </h3>
+        <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-5">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <h2 className="text-sm font-bold text-white">
+                  Mission Queue
+                </h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Select a trip to inspect live details
+                </p>
+              </div>
+
+              <span className="px-2 py-1 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400">
+                {trips.length} MISSIONS
+              </span>
+            </div>
 
             <div className="space-y-2.5">
               {trips.map((trip) => {
-                const isSelected = activeTrip?.id === trip.id;
-                const inc = requests.find((r) => r.id === trip.incidentId);
+                const incident = requests.find(
+                  (request) => request.id === trip.incidentId
+                );
+                const selected = activeTrip?.id === trip.id;
 
                 return (
-                  <div
+                  <button
                     key={trip.id}
                     onClick={() => {
                       setSelectedTripId(trip.id);
                       setAutoSimulate(false);
                     }}
-                    className={`p-3.5 rounded-xl border transition cursor-pointer flex flex-col justify-between space-y-2.5 ${
-                      isSelected
-                        ? 'bg-slate-900 border-cyan-500/60 shadow-lg shadow-cyan-950/30'
-                        : 'bg-slate-950/70 border-slate-800/90 hover:border-slate-700'
+                    className={`w-full text-left rounded-xl border p-4 transition-all ${
+                      selected
+                        ? 'bg-slate-900 border-cyan-500/50 shadow-lg shadow-cyan-950/20'
+                        : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/70'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-mono font-bold text-sm text-white">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-bold text-white">
                             {trip.id}
                           </span>
-                          <span className="text-xs font-mono bg-cyan-950 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-800/40">
+                          <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-mono text-cyan-300">
                             {trip.ambulanceId}
                           </span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-300 mt-0.5 block">
-                          {inc?.emergencyType || 'Emergency Incident'}
+
+                        <p className="text-xs font-semibold text-slate-300 mt-1 truncate">
+                          {incident?.emergencyType || 'Emergency Incident'}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`shrink-0 px-2 py-1 rounded-md border text-[9px] font-bold uppercase tracking-wide ${getStatusClass(
+                          trip.status
+                        )}`}
+                      >
+                        {getStatusLabel(trip.status)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />
+                        <span className="text-xs text-slate-400 truncate">
+                          {trip.pickupLocation}
                         </span>
                       </div>
 
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 font-bold">
-                        {trip.status}
-                      </span>
-                    </div>
-
-                    <div className="text-xs text-slate-400 space-y-1">
-                      <div className="flex items-center space-x-1 truncate text-slate-300">
-                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                        <span className="truncate">{trip.pickupLocation}</span>
-                      </div>
-                      <div className="flex items-center space-x-1 truncate text-cyan-300/90">
-                        <HospitalIcon className="w-3 h-3 text-cyan-400 shrink-0" />
-                        <span className="truncate">{trip.destinationHospital}</span>
+                      <div className="flex items-start gap-2">
+                        <Hospital className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                        <span className="text-xs text-slate-400 truncate">
+                          {trip.destinationHospital}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] font-mono pt-2 border-t border-slate-800 text-slate-400">
-                      <span className="flex items-center space-x-1">
+                    <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400">
                         <Navigation className="w-3 h-3 text-cyan-400" />
-                        <span>{trip.distanceRemainingKm} km</span>
+                        {trip.distanceRemainingKm} km
                       </span>
-                      <span className="flex items-center space-x-1 text-emerald-400 font-bold">
-                        <Clock className="w-3 h-3" />
-                        <span>ETA: {trip.etaMinutes}m</span>
+
+                      <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400">
+                        <Clock3 className="w-3 h-3" />
+                        {trip.etaMinutes} min ETA
                       </span>
+
+                      <ChevronRight
+                        className={`w-3.5 h-3.5 transition ${
+                          selected
+                            ? 'text-cyan-400 translate-x-0.5'
+                            : 'text-slate-600'
+                        }`}
+                      />
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
-          </div>
+          </section>
 
-          {/* Right Column: Deep Mission Tracker for Selected Trip */}
           {activeTrip && (
-            <div className="lg:col-span-8 space-y-4">
-              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
-                {/* Mission Header */}
-                <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-slate-800">
-                  <div>
-                    <div className="flex items-center space-x-3">
-                      <span className="font-mono text-2xl font-black text-white">
-                        {activeTrip.id}
-                      </span>
-                      <span className="font-mono text-sm font-bold px-2.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800/60">
-                        Unit: {activeTrip.ambulanceId}
-                      </span>
-                      <span className="font-mono text-sm font-bold px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                        Incident: {activeTrip.incidentId}
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-400 mt-1 flex items-center space-x-3">
-                      <span>
-                        Lead Driver: <strong className="text-slate-200">{activeTrip.driver}</strong>
-                      </span>
-                      <span>•</span>
-                      <span>
-                        Crew: <strong className="text-slate-200">{activeTrip.crew.join(', ')}</strong>
-                      </span>
-                    </div>
-                  </div>
+            <section className="min-w-0 space-y-4">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden">
+                <div className="p-5 border-b border-slate-800">
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xl font-black text-white">
+                          {activeTrip.id}
+                        </span>
 
-                  <div className="flex items-center space-x-2">
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-[11px] font-mono font-bold text-cyan-300">
+                          <Ambulance className="w-3.5 h-3.5" />
+                          {activeTrip.ambulanceId}
+                        </span>
+
+                        <span
+                          className={`px-2.5 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wide ${getStatusClass(
+                            activeTrip.status
+                          )}`}
+                        >
+                          {getStatusLabel(activeTrip.status)}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-slate-400">
+                        <span>
+                          Incident:{' '}
+                          <strong className="text-slate-200">
+                            {activeTrip.incidentId}
+                          </strong>
+                        </span>
+
+                        <span className="hidden sm:inline text-slate-700">
+                          •
+                        </span>
+
+                        <span>
+                          Driver:{' '}
+                          <strong className="text-slate-200">
+                            {activeTrip.driver}
+                          </strong>
+                        </span>
+
+                        <span className="hidden sm:inline text-slate-700">
+                          •
+                        </span>
+
+                        <span>
+                          Crew:{' '}
+                          <strong className="text-slate-200">
+                            {activeTrip.crew.join(', ')}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+
                     {relatedIncident && (
                       <button
                         onClick={() => openTimelineModal(relatedIncident)}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold cursor-pointer transition border border-slate-700"
+                        className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition"
                       >
-                        Full Audit Timeline
+                        <Activity className="w-3.5 h-3.5" />
+                        Audit Timeline
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Visual 7-Stage Stepper Required by Prompt:
-                    Emergency Received → Ambulance Assigned → En Route → Arrived → Patient Picked Up → Hospital Transport → Completed */}
-                <div className="py-2">
-                  <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold mb-3">
-                    Mission Phase Progress
-                  </h4>
+                <div className="p-5 border-b border-slate-800">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">
+                        Mission Progress
+                      </h3>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Live lifecycle status
+                      </p>
+                    </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-                    {stages.map((stage, idx) => {
-                      const isPast = idx < currentStageIndex;
-                      const isCurrent = idx === currentStageIndex;
+                    <span className="text-[10px] font-mono text-slate-500">
+                      STEP {currentStageIndex + 1} / {stages.length}
+                    </span>
+                  </div>
 
-                      return (
-                        <div
-                          key={stage.key}
-                          className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
-                            isCurrent
-                              ? 'bg-cyan-950/60 border-cyan-500 shadow-md shadow-cyan-950/50'
-                              : isPast
-                              ? 'bg-emerald-950/30 border-emerald-500/40 text-slate-300'
-                              : 'bg-slate-950/40 border-slate-800 text-slate-400'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span
-                              className={`w-5 h-5 rounded-full flex items-center justify-center font-mono text-[10px] font-bold ${
-                                isCurrent
-                                  ? 'bg-cyan-500 text-slate-950 animate-pulse'
-                                  : isPast
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-slate-800 text-slate-400'
-                              }`}
-                            >
-                              {isPast ? '✓' : idx + 1}
-                            </span>
-                            {isCurrent && (
-                              <span className="text-[9px] font-bold uppercase text-cyan-400 font-mono animate-pulse">
-                                ACTIVE
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-bold text-white leading-tight">
-                              {stage.title}
+                  <div className="relative">
+                    <div className="hidden lg:block absolute left-5 right-5 top-5 h-px bg-slate-800" />
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 relative">
+                      {stages.map((stage, index) => {
+                        const isPast = index < currentStageIndex;
+                        const isCurrent = index === currentStageIndex;
+
+                        return (
+                          <div
+                            key={stage.key}
+                            className={`rounded-xl border p-3 min-h-[105px] ${
+                              isCurrent
+                                ? 'bg-cyan-500/10 border-cyan-500/40'
+                                : isPast
+                                ? 'bg-emerald-500/5 border-emerald-500/20'
+                                : 'bg-slate-950/50 border-slate-800'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center border ${
+                                  isCurrent
+                                    ? 'bg-cyan-500 text-slate-950 border-cyan-400'
+                                    : isPast
+                                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                    : 'bg-slate-900 text-slate-500 border-slate-700'
+                                }`}
+                              >
+                                {isPast ? (
+                                  <CheckCircle2 className="w-4 h-4" />
+                                ) : (
+                                  <span className="text-xs font-bold">
+                                    {index + 1}
+                                  </span>
+                                )}
+                              </div>
+
+                              {isCurrent && (
+                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                              )}
                             </div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">{stage.sub}</div>
+
+                            <div className="mt-3">
+                              <p className="text-[11px] font-bold text-slate-100 leading-4">
+                                {stage.title}
+                              </p>
+                              <p className="text-[10px] text-slate-500 mt-1">
+                                {stage.short}
+                              </p>
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 bg-slate-950/30 border-b border-slate-800">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <ShieldAlert className="w-4 h-4 text-amber-400" />
+                        <h3 className="text-sm font-bold text-white">
+                          Dispatcher Actions
+                        </h3>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Confirm the current field milestone for this mission.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() =>
+                          updateTripStage(activeTrip.id, 'EN_ROUTE')
+                        }
+                        disabled={
+                          activeTrip.status === 'EN_ROUTE' ||
+                          currentStageIndex > 2
+                        }
+                        className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        Mark En Route
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateTripStage(activeTrip.id, 'ARRIVED')
+                        }
+                        disabled={currentStageIndex >= 3}
+                        className="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        Mark Arrived
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateTripStage(activeTrip.id, 'PATIENT_PICKED_UP')
+                        }
+                        disabled={currentStageIndex >= 4}
+                        className="px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        Patient On Board
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateTripStage(activeTrip.id, 'HOSPITAL_TRANSPORT')
+                        }
+                        disabled={currentStageIndex >= 5}
+                        className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-bold transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        Hospital Transport
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateTripStage(activeTrip.id, 'COMPLETED')
+                        }
+                        disabled={activeTrip.status === 'COMPLETED'}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Complete Trip
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Navigation className="w-4 h-4 text-cyan-400" />
+                      <div>
+                        <h3 className="text-sm font-bold text-white">
+                          Route Telemetry
+                        </h3>
+                        <p className="text-[10px] text-slate-500">
+                          Current mission location
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <div className="mt-0.5 w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                          <MapPin className="w-3.5 h-3.5 text-red-400" />
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
 
-                {/* Dispatcher Manual Stage Advancement Controls */}
-                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <span className="text-xs font-bold text-slate-200 block">
-                      Dispatcher Command Actions
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      Manually trigger state changes or confirm telemetry milestones
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={() => updateTripStage(activeTrip.id, 'EN_ROUTE')}
-                      disabled={activeTrip.status === 'EN_ROUTE'}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold cursor-pointer transition"
-                    >
-                      Mark En Route
-                    </button>
-                    <button
-                      onClick={() => updateTripStage(activeTrip.id, 'ARRIVED')}
-                      disabled={activeTrip.status === 'ARRIVED'}
-                      className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold cursor-pointer transition"
-                    >
-                      Mark Arrived
-                    </button>
-                    <button
-                      onClick={() => updateTripStage(activeTrip.id, 'PATIENT_PICKED_UP')}
-                      disabled={activeTrip.status === 'PATIENT_PICKED_UP'}
-                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold cursor-pointer transition"
-                    >
-                      Patient Picked Up
-                    </button>
-                    <button
-                      onClick={() => updateTripStage(activeTrip.id, 'HOSPITAL_TRANSPORT')}
-                      disabled={activeTrip.status === 'HOSPITAL_TRANSPORT'}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold cursor-pointer transition"
-                    >
-                      Hospital Transport
-                    </button>
-                    <button
-                      onClick={() => updateTripStage(activeTrip.id, 'COMPLETED')}
-                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold cursor-pointer transition flex items-center space-x-1 shadow"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Complete Trip</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Location Telemetry & Patient Vitals Panel */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Route Details */}
-                  <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-3">
-                    <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center space-x-2">
-                      <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Navigation & Route Telemetry</span>
-                    </h4>
-
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <span className="text-slate-400 block mb-0.5">Pickup Scene:</span>
-                        <span className="font-semibold text-white flex items-center space-x-1">
-                          <MapPin className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                          <span>{activeTrip.pickupLocation}</span>
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block mb-0.5">Destination Hospital:</span>
-                        <span className="font-semibold text-emerald-300 flex items-center space-x-1">
-                          <HospitalIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>{activeTrip.destinationHospital}</span>
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block mb-0.5">Current GPS Zone:</span>
-                        <span className="text-slate-300 font-mono">
-                          {activeTrip.currentLocation}
-                        </span>
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                            Pickup Scene
+                          </span>
+                          <p className="text-xs font-semibold text-slate-200 mt-0.5">
+                            {activeTrip.pickupLocation}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-xs font-mono">
-                        <div className="bg-slate-900 p-2 rounded-lg">
-                          <span className="text-slate-400 block text-[10px]">REMAINING DISTANCE</span>
-                          <span className="text-base font-bold text-white">
+                      <div className="ml-3.5 h-4 border-l border-dashed border-slate-700" />
+
+                      <div className="flex gap-3">
+                        <div className="mt-0.5 w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                          <Hospital className="w-3.5 h-3.5 text-emerald-400" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                            Destination Hospital
+                          </span>
+                          <p className="text-xs font-semibold text-emerald-300 mt-0.5">
+                            {activeTrip.destinationHospital}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800 grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-slate-900 border border-slate-800 p-3">
+                          <span className="text-[9px] uppercase tracking-wider text-slate-500">
+                            Current GPS Zone
+                          </span>
+                          <p className="text-xs font-mono font-semibold text-slate-200 mt-1 truncate">
+                            {activeTrip.currentLocation}
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg bg-slate-900 border border-slate-800 p-3">
+                          <span className="text-[9px] uppercase tracking-wider text-slate-500">
+                            Remaining
+                          </span>
+                          <p className="text-base font-bold text-white mt-0.5">
                             {activeTrip.distanceRemainingKm} km
-                          </span>
+                          </p>
                         </div>
-                        <div className="bg-slate-900 p-2 rounded-lg">
-                          <span className="text-slate-400 block text-[10px]">ESTIMATED ARRIVAL</span>
-                          <span className="text-base font-bold text-emerald-400">
-                            ~{activeTrip.etaMinutes} mins
-                          </span>
-                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                        <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                          Estimated Arrival
+                        </span>
+                        <span className="text-sm font-bold font-mono text-emerald-400">
+                          {activeTrip.etaMinutes} min
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Patient Vitals Card */}
-                  <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-3">
-                    <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center space-x-2">
-                      <Activity className="w-3.5 h-3.5 text-red-400" />
-                      <span>On-Board Telemetry & Vitals</span>
-                    </h4>
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <HeartPulse className="w-4 h-4 text-red-400" />
+                      <div>
+                        <h3 className="text-sm font-bold text-white">
+                          Patient Telemetry
+                        </h3>
+                        <p className="text-[10px] text-slate-500">
+                          On-board clinical monitoring
+                        </p>
+                      </div>
+                    </div>
 
                     {activeTrip.vitals ? (
-                      <div className="space-y-3 text-xs">
+                      <div className="space-y-3">
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
-                            <span className="text-[10px] text-slate-400 block font-mono">
-                              HEART RATE
+                          <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 text-center">
+                            <span className="text-[9px] uppercase tracking-wider text-slate-500">
+                              Heart Rate
                             </span>
-                            <span className="text-xl font-bold font-mono text-red-400 flex items-center justify-center space-x-1">
-                              <Heart className="w-3.5 h-3.5 text-red-500 animate-pulse" />
-                              <span>{activeTrip.vitals.heartRate}</span>
+                            <div className="flex items-center justify-center gap-1 mt-2">
+                              <HeartPulse className="w-3.5 h-3.5 text-red-400 animate-pulse" />
+                              <span className="text-lg font-bold font-mono text-red-400">
+                                {activeTrip.vitals.heartRate}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-600">
+                              BPM
                             </span>
-                            <span className="text-[9px] text-slate-400">BPM</span>
                           </div>
 
-                          <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
-                            <span className="text-[10px] text-slate-400 block font-mono">
-                              BLOOD PRESSURE
+                          <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 text-center">
+                            <span className="text-[9px] uppercase tracking-wider text-slate-500">
+                              Blood Pressure
                             </span>
-                            <span className="text-xl font-bold font-mono text-cyan-400">
-                              {activeTrip.vitals.bloodPressure}
+                            <div className="mt-2">
+                              <span className="text-lg font-bold font-mono text-cyan-400">
+                                {activeTrip.vitals.bloodPressure}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-600">
+                              mmHg
                             </span>
-                            <span className="text-[9px] text-slate-400">mmHg</span>
                           </div>
 
-                          <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-center">
-                            <span className="text-[10px] text-slate-400 block font-mono">
-                              O2 SATURATION
+                          <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 text-center">
+                            <span className="text-[9px] uppercase tracking-wider text-slate-500">
+                              SpO2
                             </span>
-                            <span className="text-xl font-bold font-mono text-emerald-400">
-                              {activeTrip.vitals.spO2}%
+                            <div className="mt-2">
+                              <span className="text-lg font-bold font-mono text-emerald-400">
+                                {activeTrip.vitals.spO2}%
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-600">
+                              Oxygen
                             </span>
-                            <span className="text-[9px] text-slate-400">SpO2</span>
                           </div>
                         </div>
 
-                        <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                          <span className="text-[10px] text-slate-400 block font-mono">
-                            CLINICAL IMPRESSION
-                          </span>
-                          <span className="font-semibold text-slate-200">
+                        <div className="rounded-xl bg-slate-900 border border-slate-800 p-3">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <Stethoscope className="w-3.5 h-3.5 text-purple-400" />
+                            <span className="text-[9px] uppercase tracking-wider text-slate-500">
+                              Clinical Impression
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold text-slate-200">
                             {activeTrip.vitals.condition}
-                          </span>
+                          </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="p-6 text-center text-slate-400 text-xs">
-                        Telemetry standing by for unit arrival on scene.
+                      <div className="min-h-[180px] rounded-xl border border-dashed border-slate-800 bg-slate-900/40 flex items-center justify-center text-center px-5">
+                        <div>
+                          <HeartPulse className="w-8 h-8 text-slate-700 mx-auto mb-3" />
+                          <p className="text-xs font-semibold text-slate-400">
+                            Patient telemetry not active
+                          </p>
+                          <p className="text-[10px] text-slate-600 mt-1">
+                            Vitals will appear when the patient is onboard.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
+
+                <div className="px-5 pb-5">
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400">
+                        Live Mission Monitoring
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                      <span>{activeTrip.ambulanceId}</span>
+                      <ArrowRight className="w-3 h-3" />
+                      <span>{activeTrip.destinationHospital}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </section>
           )}
         </div>
       )}

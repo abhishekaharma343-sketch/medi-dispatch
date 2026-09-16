@@ -290,7 +290,7 @@ export const NewIncidentModal: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                {t('priority')} *
+                Priority *
               </label>
               <div className="grid grid-cols-4 gap-1.5">
                 {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as EmergencyPriority[]).map((p) => {
