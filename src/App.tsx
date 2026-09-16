@@ -164,6 +164,13 @@ const MainContent: React.FC = () => {
         </main>
       </div>
 
+      {/* Footer */}
+      <footer className="border-t border-slate-800 bg-slate-950 px-4 py-4 text-center">
+        <p className="text-xs text-slate-500">
+          © 2026 MEDI-Dispatch. All Rights Reserved by Team ASR.
+        </p>
+      </footer>
+
       {/* Global Modals */}
       <DispatchModal />
       <NewIncidentModal />
