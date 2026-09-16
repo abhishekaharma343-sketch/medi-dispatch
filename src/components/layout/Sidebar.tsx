@@ -7,7 +7,6 @@ import {
   Route,
   History,
   BarChart3,
-  Settings,
   ChevronRight,
 } from 'lucide-react';
 import { useDispatchContext } from '../../context/DispatchContext';
@@ -68,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside className="hidden lg:flex w-64 shrink-0 bg-slate-950 border-r border-slate-800 flex-col">
+    <aside className="w-64 shrink-0 bg-slate-950 border-r border-slate-800 flex flex-col min-h-full">
       {/* Header */}
       <div className="px-5 py-5 border-b border-slate-800">
         <div className="flex items-center gap-3">
@@ -102,6 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => onSelectTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group ${
                   isActive
@@ -160,21 +160,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Emergency dispatch services are operational.
           </p>
         </div>
-      </div>
-
-      {/* Settings */}
-      <div className="px-3 pb-4">
-        <button
-          onClick={() => onSelectTab('settings')}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition ${
-            currentTab === 'settings'
-              ? 'bg-slate-800 text-white'
-              : 'text-slate-500 hover:text-slate-200 hover:bg-slate-900'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span className="text-sm font-medium">Settings</span>
-        </button>
       </div>
     </aside>
   );
