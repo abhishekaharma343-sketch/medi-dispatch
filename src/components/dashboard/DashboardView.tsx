@@ -10,6 +10,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { useDispatchContext } from '../../context/DispatchContext';
+import { IndianAmbulanceAnimation } from '../home/IndianAmbulanceAnimation';
 
 export const DashboardView: React.FC = () => {
   const { setActiveTab, stats } = useDispatchContext();
@@ -32,7 +33,8 @@ export const DashboardView: React.FC = () => {
       icon: Ambulance,
       count: stats.availableAmbulances,
       countLabel: 'available',
-      className: 'from-emerald-500/10 to-emerald-500/5 border-emerald-500/20',
+      className:
+        'from-emerald-500/10 to-emerald-500/5 border-emerald-500/20',
       iconClass: 'bg-emerald-500/10 text-emerald-400',
     },
     {
@@ -80,7 +82,9 @@ export const DashboardView: React.FC = () => {
   return (
     <div className="min-h-full flex items-center justify-center p-5 sm:p-8">
       <div className="w-full max-w-5xl">
-        <div className="text-center mb-10">
+
+        {/* Home Header */}
+        <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 mb-5">
             <Activity className="w-7 h-7 text-red-400" />
           </div>
@@ -101,12 +105,19 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
 
+        {/* Animated Indian Ambulance */}
+        <div className="mb-8">
+          <IndianAmbulanceAnimation />
+        </div>
+
+        {/* Service Heading */}
         <div className="mb-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 text-center">
             Select a service
           </h2>
         </div>
 
+        {/* Service Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((feature) => {
             const Icon = feature.icon;
@@ -153,6 +164,7 @@ export const DashboardView: React.FC = () => {
           })}
         </div>
 
+        {/* Bottom Hint */}
         <p className="text-center text-[11px] text-slate-600 mt-8">
           Select any service above to open its control panel
         </p>
