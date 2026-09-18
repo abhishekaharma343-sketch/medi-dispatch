@@ -1,0 +1,576 @@
+.ambulance-stage {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(239, 68, 68, 0.12), transparent 35%),
+    linear-gradient(180deg, #0f172a 0%, #080d18 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ambulance-stage-glow {
+  position: absolute;
+  width: 420px;
+  height: 180px;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  background: rgba(239, 68, 68, 0.08);
+  filter: blur(45px);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ambulance-message {
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ambulance-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+  animation: livePulse 1.2s infinite;
+}
+
+.siren-button {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 20;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.9);
+  color: #cbd5e1;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.siren-button:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(248, 113, 113, 0.5);
+  transform: translateY(-1px);
+}
+
+.siren-button.siren-active {
+  color: white;
+  background: rgba(220, 38, 38, 0.85);
+  border-color: rgba(248, 113, 113, 0.8);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+}
+
+.ambulance-road {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 30px;
+  height: 55px;
+  background: #020617;
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  overflow: hidden;
+}
+
+.road-line {
+  position: absolute;
+  top: 25px;
+  width: 75px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.4);
+  animation: roadMove 1.4s linear infinite;
+}
+
+.line-1 {
+  left: 0;
+}
+
+.line-2 {
+  left: 190px;
+  animation-delay: -0.45s;
+}
+
+.line-3 {
+  left: 380px;
+  animation-delay: -0.9s;
+}
+
+.line-4 {
+  left: 570px;
+  animation-delay: -1.2s;
+}
+
+.indian-ambulance-wrap {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  top: 54%;
+  transform: translate(-50%, -50%);
+  width: 310px;
+  height: 150px;
+  animation: ambulanceBounce 1.6s ease-in-out infinite;
+}
+
+.ambulance-body {
+  position: absolute;
+  left: 15px;
+  bottom: 22px;
+  width: 280px;
+  height: 105px;
+  border-radius: 18px 12px 9px 9px;
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  border: 2px solid #cbd5e1;
+  box-shadow:
+    0 12px 25px rgba(0, 0, 0, 0.45),
+    0 0 25px rgba(255, 255, 255, 0.05);
+}
+
+.ambulance-cabin {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  width: 105px;
+  height: 55px;
+  border-radius: 10px 10px 4px 4px;
+  background: #cbd5e1;
+  border: 2px solid #94a3b8;
+  overflow: hidden;
+}
+
+.front-windshield {
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  width: 40px;
+  height: 37px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #334155, #0f172a);
+  border: 1px solid #64748b;
+  overflow: hidden;
+}
+
+.driver-silhouette {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  width: 13px;
+  height: 18px;
+  border-radius: 8px 8px 3px 3px;
+  background: #111827;
+}
+
+.driver-silhouette::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #111827;
+}
+
+.side-window {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  width: 43px;
+  height: 37px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #334155, #0f172a);
+  border: 1px solid #64748b;
+}
+
+.window-cross span:first-child {
+  position: absolute;
+  width: 2px;
+  height: 31px;
+  left: 20px;
+  top: 2px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.window-cross span:last-child {
+  position: absolute;
+  height: 2px;
+  width: 37px;
+  left: 3px;
+  top: 17px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.ambulance-front {
+  position: absolute;
+  right: -1px;
+  top: 26px;
+  width: 52px;
+  height: 67px;
+  border-radius: 4px 9px 7px 4px;
+  background: linear-gradient(180deg, #f8fafc, #cbd5e1);
+  border-left: 2px solid #94a3b8;
+}
+
+.front-light {
+  position: absolute;
+  top: 9px;
+  width: 10px;
+  height: 7px;
+  border-radius: 3px;
+  background: #fef08a;
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.8);
+  animation: headLight 0.9s infinite alternate;
+}
+
+.left-light {
+  left: 7px;
+}
+
+.right-light {
+  right: 7px;
+}
+
+.ambulance-grille {
+  position: absolute;
+  left: 12px;
+  bottom: 9px;
+  display: flex;
+  gap: 3px;
+}
+
+.ambulance-grille span {
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: #475569;
+}
+
+.ambulance-number {
+  position: absolute;
+  left: 16px;
+  top: 25px;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.ambulance-stripe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 69px;
+  height: 20px;
+  background: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: white;
+}
+
+.ambulance-stripe span {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.ambulance-stripe strong {
+  font-size: 16px;
+}
+
+.india-mark {
+  position: absolute;
+  right: 58px;
+  top: 37px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #0f172a;
+}
+
+.india-mark span {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.india-mark small {
+  margin-top: 2px;
+  font-size: 4px;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.star-of-life {
+  position: absolute;
+  right: 78px;
+  top: 8px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  font-size: 20px;
+  font-weight: 900;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+}
+
+.ambulance-wheel {
+  position: absolute;
+  bottom: -18px;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: #111827;
+  border: 5px solid #475569;
+  box-shadow: inset 0 0 0 3px #020617;
+  animation: wheelSpin 0.8s linear infinite;
+}
+
+.wheel-back {
+  left: 45px;
+}
+
+.wheel-front {
+  right: 48px;
+}
+
+.wheel-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #94a3b8;
+  transform: translate(-50%, -50%);
+}
+
+.siren-light-bar {
+  position: absolute;
+  z-index: 12;
+  left: 82px;
+  top: 8px;
+  width: 75px;
+  height: 17px;
+  border-radius: 6px;
+  background: #1e293b;
+  border: 2px solid #475569;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.siren-red,
+.siren-blue {
+  flex: 1;
+  display: block;
+}
+
+.siren-red {
+  background: #ef4444;
+  animation: sirenRed 0.65s infinite alternate;
+}
+
+.siren-blue {
+  background: #2563eb;
+  animation: sirenBlue 0.65s infinite alternate;
+}
+
+.ambulance-siren-active .siren-red {
+  animation-duration: 0.25s;
+}
+
+.ambulance-siren-active .siren-blue {
+  animation-duration: 0.25s;
+}
+
+.ambulance-siren-active {
+  animation:
+    ambulanceBounce 0.55s ease-in-out infinite,
+    sirenShake 0.12s linear infinite;
+}
+
+.ambulance-siren-active .ambulance-body {
+  box-shadow:
+    0 12px 25px rgba(0, 0, 0, 0.45),
+    -15px 0 25px rgba(239, 68, 68, 0.18),
+    15px 0 25px rgba(37, 99, 235, 0.18);
+}
+
+.ambulance-status {
+  position: absolute;
+  z-index: 15;
+  bottom: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.status-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+  animation: livePulse 1s infinite;
+}
+
+@keyframes ambulanceBounce {
+  0%,
+  100% {
+    margin-top: 0;
+  }
+
+  50% {
+    margin-top: -4px;
+  }
+}
+
+@keyframes wheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes roadMove {
+  from {
+    transform: translateX(-120px);
+  }
+
+  to {
+    transform: translateX(760px);
+  }
+}
+
+@keyframes sirenRed {
+  0% {
+    opacity: 0.25;
+    box-shadow: none;
+  }
+
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.95);
+  }
+}
+
+@keyframes sirenBlue {
+  0% {
+    opacity: 1;
+    box-shadow: 0 0 18px rgba(37, 99, 235, 0.95);
+  }
+
+  100% {
+    opacity: 0.25;
+    box-shadow: none;
+  }
+}
+
+@keyframes headLight {
+  from {
+    opacity: 0.45;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.35);
+    opacity: 0.55;
+  }
+}
+
+@keyframes sirenShake {
+  0% {
+    margin-left: -1px;
+  }
+
+  50% {
+    margin-left: 1px;
+  }
+
+  100% {
+    margin-left: -1px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ambulance-stage {
+    height: 230px;
+    border-radius: 18px;
+  }
+
+  .ambulance-message {
+    top: 10px;
+    left: 10px;
+    font-size: 8px;
+    padding: 6px 8px;
+  }
+
+  .siren-button {
+    top: 10px;
+    right: 10px;
+    padding: 6px 9px;
+    font-size: 9px;
+  }
+
+  .indian-ambulance-wrap {
+    transform: translate(-50%, -50%) scale(0.82);
+  }
+
+  .ambulance-road {
+    bottom: 28px;
+  }
+
+  .ambulance-status {
+    bottom: 5px;
+    font-size: 9px;
+  }
+}
