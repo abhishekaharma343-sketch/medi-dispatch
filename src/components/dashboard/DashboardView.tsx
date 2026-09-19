@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useDispatchContext } from '../../context/DispatchContext';
 import { IndianAmbulanceAnimation } from '../home/IndianAmbulanceAnimation';
-import { MediAssistAI } from './ai/MediAssistAI';
+
 
 export const DashboardView: React.FC = () => {
   const { setActiveTab, stats } = useDispatchContext();
@@ -112,10 +112,6 @@ export const DashboardView: React.FC = () => {
           <IndianAmbulanceAnimation />
         </div>
 
-        {/* MEDI-Assist AI */}
-        <div className="mb-8">
-          <MediAssistAI />
-        </div>
 
         {/* Service Heading */}
         <div className="mb-4">
