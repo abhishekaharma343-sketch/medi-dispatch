@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useDispatchContext } from '../../context/DispatchContext';
 import { IndianAmbulanceAnimation } from '../home/IndianAmbulanceAnimation';
+import { MediAssistAI } from './ai/MediAssistAI';
 
 export const DashboardView: React.FC = () => {
   const { setActiveTab, stats } = useDispatchContext();
@@ -99,6 +100,7 @@ export const DashboardView: React.FC = () => {
 
           <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+
             <span className="text-xs font-medium text-emerald-400">
               System Online
             </span>
@@ -108,6 +110,11 @@ export const DashboardView: React.FC = () => {
         {/* Animated Indian Ambulance */}
         <div className="mb-8">
           <IndianAmbulanceAnimation />
+        </div>
+
+        {/* MEDI-Assist AI */}
+        <div className="mb-8">
+          <MediAssistAI />
         </div>
 
         {/* Service Heading */}
@@ -125,6 +132,7 @@ export const DashboardView: React.FC = () => {
             return (
               <button
                 key={feature.id}
+                type="button"
                 onClick={() => setActiveTab(feature.id)}
                 className={`group text-left p-5 rounded-2xl border bg-gradient-to-br ${feature.className} hover:border-slate-600 hover:bg-slate-900/80 transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-red-500/40`}
               >
